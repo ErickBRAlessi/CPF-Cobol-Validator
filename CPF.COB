@@ -9,28 +9,32 @@
       *          (Codigo de Pessoa Física) / (Kind of Brazilian ID doc)
       *           e valido                 / is valid
       * Tectonics: cobc
+      * THE EASIEST WAY TO RUN IT, WITHOUT A MAINFRAME IS WITH OPENCOBOL
       ******************************************************************
        ENVIRONMENT DIVISION.
 
        DATA DIVISION.
        WORKING-STORAGE SECTION.
-      *O CPF É FORMADO POR 11 DIGITOS, 9 IDENTIFICADORES E 2 VALIDADORES
+
+      *O CPF E FORMADO POR 11 DIGITOS, 9 IDENTIFICADORES E 2 VALIDADORES
       *THE BRAZILIAN ID IS COMPOSED BY 11 DIGITS, BEING THE LAST
       *TWO USED FOR VALIDATION
-       01 CPF.
+        01 CPF.
            05 WRK-DIGITO  PIC 9(09)  VALUE ZEROES.
            05 WRK-VERIFI  PIC 9(02)  VALUE ZEROES.
 
         01 INDICES.
-          05 IND1      PIC 9(2)      VALUE ZEROES.
-          05 IND2      PIC 9(2)      VALUE ZEROES.
+           05 IND1      PIC 9(2)      VALUE ZEROES.
+           05 IND2      PIC 9(2)      VALUE ZEROES.
 
         77 AUX         PIC 9(1)      VALUE ZEROES.
 
         77 ACUMULADOR  PIC 9(4)      VALUE ZEROES.
       *INDICADOR DE VALIDO 1 PARA VALIDO 0 PARA INVALIDO
       *INDICATOR 1 TO VALID, 0 TO NOT VALID.
-        77 VALIDO      PIC 9(1)      VALUE 1.
+        01 CPF-VALIDO  PIC 9(1).
+           88 VALIDO       VALUE 1.
+           88 INVALIDO     VALUE 0.
 
        PROCEDURE DIVISION.
 
@@ -44,6 +48,8 @@
 
        0100-INICIALIZAR SECTION.
 
+           DISPLAY 'TYPE YOUR CPF'.
+
            ACCEPT CPF.
 
            PERFORM 0110-VALIDAR-ENTRADA.
@@ -54,7 +60,7 @@
       *SE NAO FOR NUMERICO, NAO E VALIDO
       *IF IT IS NOT NUMERIC, IT'S NOT VALID
            IF CPF IS NOT NUMERIC
-              MOVE 0 TO VALIDO
+              SET INVALIDO TO TRUE
               PERFORM 0300-FINALIZAR
            END-IF.
 
@@ -76,7 +82,7 @@
            MOVE 1 TO IND1.
            PERFORM VARYING IND2 FROM 10 BY -1 UNTIL IND2 < 2
                MOVE CPF(IND1:1) TO AUX
-               COMPUTE ACUMULADOR = ACUMULADOR + AUX * IND2
+               COMPUTE ACUMULADOR = ACUMULADOR + AUX * ind2
                ADD 1 TO IND1
            END-PERFORM.
       *DEPOIS MULTIPLICA A SOMA POR 10 E DIVIDE POR 11
@@ -87,9 +93,9 @@
       *THE VALUE THAT MATTER IS THE REMAIN OF THIS DIVISION
       *AND IT SHOULD BE EQUALS TO THE 10TH CHARACTER
            IF AUX EQUAL CPF(10:1)
-              MOVE 1 TO VALIDO
+              SET VALIDO TO TRUE
            ELSE
-              MOVE 0 TO VALIDO
+              SET INVALIDO TO TRUE
               PERFORM 0300-FINALIZAR
            END-IF.
 
@@ -102,7 +108,7 @@
            MOVE 0 TO ACUMULADOR.
            PERFORM VARYING IND2 FROM 11 BY -1 UNTIL IND2 < 2
                MOVE CPF(IND1:1) TO AUX
-               COMPUTE ACUMULADOR = ACUMULADOR + AUX * IND2
+               COMPUTE ACUMULADOR = ACUMULADOR + AUX * ind2
                ADD 1 TO IND1
            END-PERFORM.
 
@@ -110,38 +116,37 @@
            DIVIDE ACUMULADOR BY 11 GIVING AUX REMAINDER AUX
 
            IF AUX EQUAL CPF(11:1)
-               MOVE 1 TO VALIDO
+               SET VALIDO TO TRUE
            ELSE
-               MOVE 0 TO VALIDO
+               SET INVALIDO TO TRUE
            PERFORM 0300-FINALIZAR
            END-IF.
 
        0220-TESTE-ONZE-DIGITO-FIM. EXIT.
+
+       0230-TESTE-IGUAL SECTION.
       *SE TODOS OS NUMEROS FOREM IGUAIS, NAO E UM CPF VALIDO, MAS PODE
       *PASSAR NOS TESTES ANTERIORES
-      *IF EVERY NUMBER IS EQUAL, IT'S NOT VALID, BUT CAN PASS THROUGH
+      *IF EVERY NUMBER IS THE SAME, IT'S NOT VALID, BUT CAN PASS THROUGH
       *PREVIOUS TESTS
-       0230-TESTE-IGUAL SECTION.
-
            PERFORM VARYING IND1 FROM 1 BY 1 UNTIL IND1 > 10
            COMPUTE IND2 = IND1 + 1
                IF CPF(IND1:1) EQUAL CPF(IND2:1)
-                   MOVE 0 TO VALIDO
+                   SET INVALIDO TO TRUE
                ELSE
-                   MOVE 1 TO VALIDO
+                   SET VALIDO TO TRUE
                END-IF
            END-PERFORM.
 
        0230-TESTE-IGUAL-FIM. EXIT.
 
        0300-FINALIZAR SECTION.
-
-           IF VALIDO EQUAL 1
+           EVALUATE TRUE
+           WHEN VALIDO
                DISPLAY CPF ' VALIDO'
-           ELSE
-           IF VALIDO EQUAL 0
+           WHEN INVALIDO
                DISPLAY CPF ' INVALIDO'
-           END-IF.
+           END-EVALUATE.
            STOP RUN.
 
        0300-FINALIZAR-FIM. EXIT.
